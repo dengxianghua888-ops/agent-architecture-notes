@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="同一份改稿委托，交给单个 Agent、固定工作流和动态委派会有什么不同？以一次镜头替换为例，对照技能评测与视频评审，讨论专业方法该拆多细，以及怎样验证成片质量。">
+  <title>Agent 怎样分工，Skill 应该拆多细？ · Agent 架构笔记</title>
+  <link rel="canonical" href="https://dengxianghua888-ops.github.io/agent-architecture-notes/articles/agent-and-skill-orchestration/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="Agent 架构笔记">
+  <meta property="og:title" content="Agent 怎样分工，Skill 应该拆多细？">
+  <meta property="og:description" content="同一份改稿委托，交给单个 Agent、固定工作流和动态委派会有什么不同？以一次镜头替换为例，对照技能评测与视频评审，讨论专业方法该拆多细，以及怎样验证成片质量。">
+  <meta property="og:url" content="https://dengxianghua888-ops.github.io/agent-architecture-notes/articles/agent-and-skill-orchestration/">
+  <meta property="og:image" content="https://dengxianghua888-ops.github.io/agent-architecture-notes/assets/media/share-agent-orchestration.png">
+  <meta property="og:image:alt" content="Agent 怎样分工，Skill 应该拆多细？">
+  <meta name="twitter:image" content="https://dengxianghua888-ops.github.io/agent-architecture-notes/assets/media/share-agent-orchestration.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agent 怎样分工，Skill 应该拆多细？">
+  <meta name="twitter:description" content="同一份改稿委托，交给单个 Agent、固定工作流和动态委派会有什么不同？以一次镜头替换为例，对照技能评测与视频评审，讨论专业方法该拆多细，以及怎样验证成片质量。">
+  <link rel="stylesheet" href="./assets/reader.css">
+  <script src="./assets/reader.js" defer></script>
+</head>
+<body id="top">
+<a class="skip" href="#reading">跳到正文</a>
+<header class="mast">
+  <div class="mast-in">
+    <a class="wordmark" href="./"><span class="book" aria-hidden="true"></span>Agent 架构笔记</a>
+    <div class="actions"><a href="https://github.com/dengxianghua888-ops/agent-architecture-notes">GitHub 仓库 ↗</a><button type="button" data-print hidden>打印</button></div>
+  </div>
+</header>
+<div class="mobile-nav">
+  <details><summary><span>文章目录</span><span class="summary-icon" aria-hidden="true"></span></summary><nav aria-label="移动端文章目录"><ol class="toc-list"><li><a href="#anatomy" data-section="anatomy">一次改稿里，谁负责做决定？</a></li><li><a href="#coordination" data-section="coordination">同一批素材，有哪些分工方式？</a></li><li><a href="#granularity" data-section="granularity">“把 Skill 拆细”到底在拆什么？</a></li><li><a href="#library" data-section="library">从一份好方法，到一个好用的技能库</a></li><li><a href="#recut" data-section="recut">回到时间线，怎样只换最后一个镜头？</a></li><li><a href="#evaluation" data-section="evaluation">怎样证明编排改善了结果？</a></li><li><a href="#closing" data-section="closing">哪些能力值得留下？</a></li></ol></nav></details>
+</div>
+<div class="layout">
+  <aside class="rail" aria-label="阅读导航"><div class="rail-inner">
+    <div class="rail-title">本文目录</div><nav aria-label="章节目录"><ol class="toc-list"><li><a href="#anatomy" data-section="anatomy">一次改稿里，谁负责做决定？</a></li><li><a href="#coordination" data-section="coordination">同一批素材，有哪些分工方式？</a></li><li><a href="#granularity" data-section="granularity">“把 Skill 拆细”到底在拆什么？</a></li><li><a href="#library" data-section="library">从一份好方法，到一个好用的技能库</a></li><li><a href="#recut" data-section="recut">回到时间线，怎样只换最后一个镜头？</a></li><li><a href="#evaluation" data-section="evaluation">怎样证明编排改善了结果？</a></li><li><a href="#closing" data-section="closing">哪些能力值得留下？</a></li></ol></nav>
+    <div class="reading-progress" hidden><div><span>阅读进度</span><span data-percent>0%</span></div><progress max="100" value="0" aria-label="阅读进度"></progress></div>
+  </div></aside>
+  <main class="reader" id="reading" tabindex="-1">
+    <article aria-labelledby="article-title">
+      <header class="article-head"><div class="date">2026-11-27</div><h1 id="article-title">Agent 怎样分工，Skill 应该拆多细？</h1><div class="lead"><p>剪辑师收到一句改稿意见：“把最后那个拥抱换掉。想让人觉得他们认出了对方，音乐和前面都别动。”逐帧替换很容易。难的是找到能传达“认出来”的一眼，还要保证已获认可的部分原样保留。这三件事，需要三种不同的能力。</p></div></header>
+      <p>如果让一个 Agent 独自完成，它得读懂委托、翻找素材、比较镜头、改时间线，再自己检查。换成三个 Agent，就要决定谁看哪些原片，谁有权改工程，以及三人意见冲突时听谁的。再给它们一本剪辑手册，又多了一个问题：手册里写的“用反应镜头收尾”，在这场戏里究竟适不适用？</p>
+<p>本文的判断是，<strong>能独立取证的工作适合拆开，必须一起权衡的决定应共享上下文，可重复验证的动作值得封装。</strong> 这是选择架构的起点。下面把同一份委托分别放进几种结构，用研究中的正例和反例说明，这个判断在什么条件下会失灵。</p>
+<section class="chapter" id="anatomy">
+<h2>一次改稿里，谁负责做决定？<a class="anchor" href="#anatomy" aria-label="本节链接">#</a></h2>
+<p>这里把 Agent 称为能根据目标、当前状态和工具反馈决定下一步的执行者。模型负责其中的判断，宿主程序把可用工具、工程状态、权限和反馈接到它身上。“Agent 架构”具体到一次运行，就是哪些决定交给模型，哪些写进程序，哪些要请人定。一个工作流也能让模型发挥判断力。只要步骤固定，步骤内仍然可以生成不同的候选。<a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic 对工作流与 Agent 的定义和实例</a></p>
+<figure class="diagram" aria-label="控制权流程"><div class="flow-labels" aria-hidden="true"><span>阶段</span><span>谁决定</span><span>依据或动作</span></div><ol class="flow vertical"><li><strong>明确委托</strong><div class="owner">用户定目标，主 Agent 解释</div><div class="desc">音乐和前段锁定。“认出来”是表达意图，允许多种剪法。</div></li><li><strong>寻找证据</strong><div class="owner">主 Agent 分派，检索工具或助手取证</div><div class="desc">分头找视线与反应，交回人物、时间码、前后动作和可回放的原声。</div></li><li><strong>选择镜头</strong><div class="owner">能看到连续场景的主创判断</div><div class="desc">把两个候选各自接到上一个镜头后，比较观众先注意到谁。</div></li><li><strong>写入工程</strong><div class="owner">编辑工具按约束执行</div><div class="desc">在指定草稿版本等长替换，返回实际变更区间和轨道。</div></li><li><strong>决定交付</strong><div class="owner">程序核对约束，看片者判断表达</div><div class="desc">检查音乐和时长，再全速、有声看两个版本。证据不足就回到查找。</div></li></ol></figure>
+<p>读这张图，可以问一个很实际的问题：如果选错了镜头，下一次应该给谁什么反馈？时长变了，反馈给写入工具。候选里压根没有对视，回到检索。候选里明明有更好的一眼，却挑了一个无关的特写，就该让选择镜头的人重看上下文。笼统地给整个系统加一段“请更仔细”，很难对准这三个错误。</p>
+<h3 id="skill工具子代理和状态各管什么">Skill、工具、子代理和状态各管什么<a class="anchor" href="#skill工具子代理和状态各管什么" aria-label="本节链接">#</a></h3>
+<p><strong>Skill（技能）</strong>保存一项工作的方法。按 Agent Skills 的开放格式，它是以 <code>SKILL.md</code> 为入口的目录，可以附带脚本、样例和资料。剪辑方法可以写“先确定谁在看谁，再把目光接在反应之前”，并附上判断错位的反例。<strong>工具</strong>提供可以实际执行的动作，例如按时间码读原片、替换片段。一个 Skill 可以教模型何时调用工具，也可以附上完成动作的脚本。<strong>子代理</strong>则领取子目标，在自己的上下文里取证或作判断，再把结果交回或移交下一位。<a href="https://agentskills.io/specification">Agent Skills 规范</a> · <a href="https://code.claude.com/docs/en/sub-agents">子代理的上下文与委派</a></p>
+<p><strong>状态</strong>回答“刚才到底发生了什么”。对话摘要里一句“音乐已经锁好”，与工程里哪条音轨被锁、哪一版写入成功，是两种不同的凭据。运行环境可以保存检查点供中断后继续；应用仍需给实际写入做版本校验和重复提交处理。否则，恢复一次请求就可能多插入一个片段。这个问题同样出现在客服退款和订单变更中。<a href="https://docs.langchain.com/oss/python/langgraph/persistence">LangGraph 的状态保存机制</a></p>
+<p>还有一层是分发。MCP，即模型上下文协议，可以给宿主提供工具和资源；其 Skills 扩展也能列出技能并读取说明及配套文件。客户端要支持扩展、选择加载内容，并决定如何调用脚本或工具。从服务器上读到一份剪辑方法，到能安全地改写眼前的工程，中间还有这几步。<a href="https://modelcontextprotocol.io/extensions/skills/overview">MCP Skills 扩展与客户端支持说明</a></p>
+</section>
+<section class="chapter" id="coordination">
+<h2>同一批素材，有哪些分工方式？<a class="anchor" href="#coordination" aria-label="本节链接">#</a></h2>
+<p>设想有一百段原片，用户只要一个合适的结尾。下面三条路线都能访问同样的原片与编辑工具。它们的区别在于谁能改变寻找和判断的顺序。</p>
+<figure class="diagram" aria-label="同一素材的方案比较"><div class="routes"><div class="route"><strong>单个 Agent 循环</strong><dl><dt>如何处理同一素材</dt><dd>看一批原片，试剪，发现视线接不上，再找下一批</dd><dt>收益</dt><dd>上一镜的声音和犹豫都留在同一判断里</dd><dt>代价</dt><dd>搜得慢，容易沿着第一个想法反复找</dd></dl></div><div class="route"><strong>固定工作流</strong><dl><dt>如何处理同一素材</dt><dd>按批检索，合并带时间码的候选，统一试剪，再验证</dd><dt>收益</dt><dd>素材覆盖和失败位置容易核对，各批可以并行</dd><dt>代价</dt><dd>预设只找正面特写时，会漏掉背影或声音里的反应</dd></dl></div><div class="route"><strong>动态委派</strong><dl><dt>如何处理同一素材</dt><dd>主 Agent 先看样片，再按线索分工；证据不足时增查此前遗漏的段落</dd><dt>收益</dt><dd>可针对新发现改搜法，把额外时间用在难处</dd><dt>代价</dt><dd>指挥和交接占预算，过早给出错误方向会让各路一起漏看</dd></dl></div></div></figure>
+<p><strong>并行、分工和移交是三个选择。</strong> 程序可以并发读取一百个文件，全程只用一个负责判断的模型。几个助手各自搜片，可以只读，共用一位最终剪辑者。另一种设计是移交控制权，例如客服助手把个案和订单状态交给退货专员，后者继续与用户对话。同一件事让多位助手都拥有写权限，还要解决它们读到不同版本、给出相互覆盖的修改。决定是否加一个角色前，应先能说出它独有的证据、权限或判断职责。<a href="https://developers.openai.com/api/docs/guides/agents/orchestration#use-handoffs-for-delegated-ownership">OpenAI 对助手协作和控制权移交的说明</a></p>
+<p>一项横跨六种基准、260 种配置的研究呈现了两个方向。在可分项分析的金融任务上，集中汇总的多代理平均得分由单代理的 0.349 升到 0.631，相对提高 80.8%。在依赖前一步状态的 PlanCraft 规划任务上，独立分工相对单代理下降 70.0%。两端来自不同任务和编排。回到选镜，分头找出“哪些片段里有这个人”有望扩大覆盖；每个助手分别决定自己那一段的情绪强度，拼到一起却可能提前花掉结尾的力量。后一个判断是剪辑上的推论。<a href="https://arxiv.org/html/2512.08296v3">多代理缩放研究 v3</a></p>
+<h3 id="交接时摘要保留什么">交接时，摘要保留什么？<a class="anchor" href="#交接时摘要保留什么" aria-label="本节链接">#</a></h3>
+<p>让助手回答“她很伤心”，节省了上下文，却丢掉了决定剪法的细节。让它交回“素材 B，01:12–01:16；先看对方，吸气，低头；原声有门响”，主创就能回原片核验，也能否决这条解释。图文检索研究 MM-ContextFold 用了类似办法：主上下文保留文字，临时分支按需读原图。在七个基准、五种模型、相同工具和总模型调用上限下，平均准确率为 59.2%，ReAct 对照为 52.9%。在两款模型的消融中，完全用图注代替分支原图，准确率分别下降 16.3 和 21.4 个百分点。这项实验证实原始视觉证据对图文问答有价值；视频的动作、声音、表演仍需要自己的评价方法。<a href="https://arxiv.org/html/2609.23121v1">MM-ContextFold 表 1 和表 2</a></p>
+<h3 id="claude-code-和-codex-把哪部分交给了程序">Claude Code 和 Codex 把哪部分交给了程序？<a class="anchor" href="#claude-code-和-codex-把哪部分交给了程序" aria-label="本节链接">#</a></h3>
+<p>以核查十条声明为例。Claude Code 的 Ultracode 可让模型为合适的任务编写动态工作流。Anthropic 的示例先核查十条声明，再派怀疑者复查初判获支持的四条。四条矛盾、两条证据不足的声明都没进第二轮。这个设计有利于拦下被误判为真的声明。如果想发现被初筛错杀的好镜头，就得抽查落选项。再开几位都只看入围结果的助手，覆盖面也不会扩大。<a href="https://code.claude.com/docs/en/workflows">Claude Code 工作流</a> · <a href="https://platform.claude.com/cookbook/claude-agent-sdk-08-dynamic-workflows">十条声明的示例脚本</a></p>
+<p>OpenAI 的程序化工具调用展示了另一个选择。模型可以写程序遍历获准工具的结果，先按人物、时长等条件筛掉大量记录，再把少量原片引用交给负责比较的模型。Codex 也可以委派子代理，但一次筛选不必为每个文件启动一个助手。推理强度调整一次判断愿意花多少资源；程序化调用改变工具之间怎样传数据；委派改变谁看到哪些证据。理解这三个开关，比记住某个界面的最高档更有用。<a href="https://developers.openai.com/api/docs/guides/tools-programmatic-tool-calling">程序化工具调用</a> · <a href="https://learn.chatgpt.com/docs/agent-configuration/subagents">Codex 与 Work 的子代理说明</a> · <a href="https://code.claude.com/docs/en/model-config">Claude Code 的强度设置</a></p>
+</section>
+<section class="chapter" id="granularity">
+<h2>“把 Skill 拆细”到底在拆什么？<a class="anchor" href="#granularity" aria-label="本节链接">#</a></h2>
+<p>做剪辑的人可能想把“剪好一场重逢”拆成找人物、辨认视线、挑反应、对齐声音。工程师可能指把“替换一个镜头”拆成移除旧片、插入新片、回填时长。还有人打算给每项工作配一位 Agent。这三种改动彼此独立，实验时一起改，最后连哪一步帮了忙都说不清。</p>
+<p><strong>知识拆分</strong>改变模型能读到什么。一本完整的重逢戏手册能讲清眼神、前后镜头和观众预期之间的关系。拆成几张方法卡后，做预告片的人也能复用“如何辨认视线”，但检索器必须知道何时应把两张卡一起交给它。<strong>接口拆分</strong>改变模型要做多少次正确操作。引擎内部可以把锁轨校验、入出点计算和写入分别测试，对模型却只暴露一次“等长替换并返回差异”。<strong>执行拆分</strong>改变谁能看到原始证据、谁有最后决定权。一个 Agent 可以顺序读五张卡，五位 Agent 也可以共读一本手册。</p>
+<p>工具究竟要拆多细？MCP-GRANITE 把相同的模拟物联网操作实现成四套接口，81 个场景、9 个本地模型，每种条件各跑三次。一个总入口、两个读写入口、四个功能入口、八至十个单用途入口，平均任务完成率依次约为 <strong>36%、42%、49%、42%</strong>。两个入口的工具选择 F1 最高，四个入口的最终完成率更高。把十个函数压进一个函数，有时只是把十个选择挪进了一大串参数。这里的“四个”描述特定模型和设备任务，把它直接当剪辑产品的接口配额就超出了证据。<a href="https://arxiv.org/html/2609.24161v1">MCP-GRANITE 表 II</a></p>
+<p>嵌套也有代价。SkillCraft 让模型把反复出现的工具调用组合成可执行技能。在相同的 126 项任务上，GPT-5.2 用平层技能完成 114 项，允许技能继续调用技能后只完成 100 项，单项技能调用的执行成功率却从 84% 升到 95%。同样改变结构，DeepSeek-V3.2 从 87 项升到 92 项，Claude Sonnet 4.5 保持 121 项。一个函数顺利返回，也可能返回了错误的人物，之后每一层都能顺利处理这份错误。论文的 Skill 是可执行组合，这组结果不能直接用来决定方法文档的篇幅。<a href="https://arxiv.org/html/2603.00718v2">SkillCraft 表 3 与失败案例</a></p>
+<p>对产品团队，我会用两个问题决定是否先试拆分。第一，换一个用户目的，这个步骤的结果还值不值得复用？人物时间码往往值得，“这一眼足够动人”就难以脱离前后镜头。第二，把它单独交出去，接收方能不能独立验证结果？如果“找到两人对视”只能靠重看整个场景才知道，不妨先拆出检索和证据，把最后的判断留在一起。</p>
+</section>
+<section class="chapter" id="library">
+<h2>从一份好方法，到一个好用的技能库<a class="anchor" href="#library" aria-label="本节链接">#</a></h2>
+<p>有些工作确实值得写成 Skill。SkillsBench v4 在 87 项任务、18 组模型与运行环境上比较有无精选技能，按任务平均的通过率从 33.9% 升至 50.5%，仍有 13 项任务的观察值下降。另一项 SWE-Skills-Bench v2 测了 98 个公开软件工程技能，每个技能对应 10 项需求、4 组配置，共 3,920 对有无技能的运行。每项需求的自动检查平均通过比例从 76.6% 到 76.9%。按论文检验，4 个显著正向、2 个显著负向，其余 92 个未检出显著差异。前一项问精选方法能否让整项任务过关，后一项问公开方法能帮需求多过多少条检查。对象、基线和分母都变了，两篇论文可以同时成立。<a href="https://arxiv.org/html/2602.12670v4">SkillsBench v4</a> · <a href="https://arxiv.org/html/2603.15401v2">SWE-Skills-Bench v2</a></p>
+<h3 id="场景手册和可组合的小技能谁更能应付新需求">场景手册和可组合的小技能，谁更能应付新需求？<a class="anchor" href="#场景手册和可组合的小技能谁更能应付新需求" aria-label="本节链接">#</a></h3>
+<p>对高频而稳定的委托，例如“同一时长替换片尾画面”，一份场景手册可以一次说明哪些轨道要锁、哪些动作要连着做、哪种结果该回退。它免去了每次重新拼流程的成本。可用户一旦要求“保留同一镜头，只靠画外音让观众先认出人物”，原手册对换画面的偏好反倒会引错方向。这时能单独调用的音轨检索、试听、局部试剪就有价值。一个可测的折中方案，是让场景手册引用这些操作，并列出需要退出常规流程的条件。陌生意图能否组合成功，要留到没有现成手册的题目上检验。</p>
+<p>还要看新 Skill 究竟新增了什么。如果系统只能读转写文字，给它一篇再好的听音方法，也听不到台词下那一声门响；提供原声读取接口后，它才获得这条证据。若原声本来就能读，手册提醒它去听，改善的是已有能力被用对的概率。若技能包还附带经过检验的节拍分析程序，又能增加此前做不到的测量。设计评审时分别写明新增的知识、可观察的证据和可执行的动作，才能解释能力边界为什么变化。<a href="https://agentskills.io/specification">Skill 格式中的说明、脚本与资源</a> · <a href="https://arxiv.org/html/2405.15793">工具接口如何改变同一模型的表现</a></p>
+<h3 id="路由损失从哪里来">路由损失从哪里来？<a class="anchor" href="#路由损失从哪里来" aria-label="本节链接">#</a></h3>
+<p>在一本手册里写对了，模型还得在需要时找到它、读进去、用对地方。另一组实验沿用 SkillsBench 的 84 项任务，给同一款 Opus 4.6 换了六种加载条件。下面六行属于同一个基准，每行都给出重复运行后按任务平均的通过率。<a href="https://arxiv.org/html/2604.04323">研究设计、实验组与图 2</a></p>
+<figure class="illustration"><a href="./assets/media/skill-discovery.svg" aria-label="查看原图：同一模型的任务通过率：强制加载精选技能 55.4%，自选精选 51.2%，加入干扰项 43.5%，约 3.4 万项中包含精选 40.1%，移除精选 38.4%，无技能 35.4%。"><img src="./assets/media/skill-discovery.svg" loading="lazy" decoding="async" alt="同一模型的任务通过率：强制加载精选技能 55.4%，自选精选 51.2%，加入干扰项 43.5%，约 3.4 万项中包含精选 40.1%，移除精选 38.4%，无技能 35.4%。"></a></figure>
+<p>最值得追问的是 55.4% 和 51.2% 的差距。此时好方法还在同一个小目录里，仅仅把“直接给”改成“模型自己决定读什么”，就已经损失 4.2 个百分点。到大库仍含精选的 40.1%，其中还混有候选筛选、匹配和模型如何使用检索结果等影响。实验模拟部署条件；它和 SkillsBench 共用许多题目，不能当成两批独立用户的验证。<a href="https://arxiv.org/html/2604.04323">六种加载条件和逐项结果</a></p>
+<p>遇到一个没调通的技能库，可以先让熟悉任务的人指定正确方法，再让系统自己选。两者都失败，先查手册写了什么、工具能做什么。如果人工选时有用，自选时失灵，再查名称、触发描述、冲突项和候选排序。检索器可以索引全文，模型只需读命中部分。渐进加载节约的是当前上下文；能否找到那一页，仍要单独测。<a href="https://agentskills.io/specification">Agent Skills 渐进加载</a> · <a href="https://arxiv.org/html/2603.22455v5">SkillRouter 的检索和端到端比较</a></p>
+<h3 id="什么时候值得画依赖图">什么时候值得画依赖图？<a class="anchor" href="#什么时候值得画依赖图" aria-label="本节链接">#</a></h3>
+<p>“确认人物身份后，才能把反应镜头归给这个人”是一条产物依赖。“这两张卡常一起被检索”是一条知识关联。“运行时先派甲，再派乙”是调度决定。同一条箭头画在三种图上，含义不同。无环依赖图（DAG）适合描述这次已知的前置关系。试剪后觉得情绪不对，再回去找素材，则需要程序或 Agent 另外决定是否进入下一轮。</p>
+<p>一项 41 任务的实验保持 Skill 内容和配套资料不变，只改组织说明。GPT-5.5 与 Codex 组合下，平铺说明、指明顺序、解释阶段目标、写明产物依赖，通过率依次为 52.03%、52.85%、55.28%、58.54%。DeepSeek 与 OpenClaw 组合下，阶段说明和依赖图同为 51.22%。这支持了一个很具体的编辑动作：当下一步依赖某项产物时，把它写出来。研究没有把同一份手册随机切成不同尺寸，也没有把执行引擎换成图调度器。<a href="https://arxiv.org/html/2610.08875v2">组织方式受控实验，表 7</a></p>
+<h3 id="一次成功可以留下什么">一次成功可以留下什么？<a class="anchor" href="#一次成功可以留下什么" aria-label="本节链接">#</a></h3>
+<p>一次剪对的结尾，最有价值的记录也许是“观众在第二个人抬头时才明白他们相识”，以及让人产生这种理解的版本、时间码和前后原片。直接写成“重逢戏一律先切近景”，很容易在另一场戏里学错规律。素材记录、当前项目的已批准状态、跨项目通用的技能，应该有不同的有效范围。</p>
+<p>SkillLearnBench 专门筛选了难以裸做、给人工指导后有机会成功的任务，覆盖 20 种任务、100 个实例。正式论文中，无技能平均准确率为 10.17%，用执行反馈自动改写技能为 31.08%，人工技能为 74.50%。其中 17 种任务改自 SkillsBench。这说明反馈在所选任务上能积累有用方法，也说明自动写进技能库的经验值得在新实例上重验。实际产品可以把好做法先存成候选，留下一个相似正例和一个意图相反的反例，再用没参与写规则的新素材决定是否推广。升级模型或换工具后，同一批例子还能检验这条规则是否仍值得保留。<a href="https://proceedings.colm.cc/paper_files/paper/2026/file/475b85eb74d201bead9927807e713e95-Paper-Conference.pdf">SkillLearnBench 正式论文表 2 和选题条件</a></p>
+</section>
+<section class="chapter" id="recut">
+<h2>回到时间线，怎样只换最后一个镜头？<a class="anchor" href="#recut" aria-label="本节链接">#</a></h2>
+<p>把开头的改稿做成一个可以讨论的方案。假设草稿是第 7 版，25 帧/秒，末镜头长 48 帧。音乐和前段已获批准。48 帧是本例的约束，实际工作还要以工程帧率和用户是否允许改时长为准。</p>
+<figure class="diagram" data-recut aria-label="局部重剪步骤"><div class="step-nav" aria-label="选择重剪步骤" hidden><button id="figure-3-step-1-button" type="button" aria-controls="figure-3-step-1">读工程</button><button id="figure-3-step-2-button" type="button" aria-controls="figure-3-step-2">找证据</button><button id="figure-3-step-3-button" type="button" aria-controls="figure-3-step-3">试两版</button><button id="figure-3-step-4-button" type="button" aria-controls="figure-3-step-4">核对改动</button><button id="figure-3-step-5-button" type="button" aria-controls="figure-3-step-5">选片或回退</button></div><div class="step-info" id="figure-3-step-1" data-step-panel><strong>读工程</strong><dl><div><dt>受影响对象</dt><dd>第 7 版时间线、锁定音乐、末镜头边界</dd></div><div><dt>如何验证</dt><dd>记下工程帧率、锁定轨道标识和末镜头的 48 帧。</dd></div></dl></div><div class="step-info" id="figure-3-step-2" data-step-panel><strong>找证据</strong><dl><div><dt>受影响对象</dt><dd>候选 A 的转身，候选 B 的抬眼</dd></div><div><dt>如何验证</dt><dd>各自交回可播放的原片区间。连同上一个镜头试听，确认人物、视线和原声。</dd></div></dl></div><div class="step-info" id="figure-3-step-3" data-step-panel><strong>试两版</strong><dl><div><dt>受影响对象</dt><dd>同一基版上的两个草稿</dd></div><div><dt>如何验证</dt><dd>每版只换末镜头画面，保持 48 帧。旧原声保留或静音按委托明确，音乐始终锁定。</dd></div></dl></div><div class="step-info" id="figure-3-step-4" data-step-panel><strong>核对改动</strong><dl><div><dt>受影响对象</dt><dd>时间线差异和导出片</dd></div><div><dt>如何验证</dt><dd>校验前段、音乐参数与对齐位置，核对真实导出。工程已变成第 8 版时先重新读取。</dd></div></dl></div><div class="step-info" id="figure-3-step-5" data-step-panel><strong>选片或回退</strong><dl><div><dt>受影响对象</dt><dd>两个有声版本与原版</dd></div><div><dt>如何验证</dt><dd>随机顺序全速播放，让看片者指出在哪一刻看懂“认出对方”；都没看懂就换候选。</dd></div></dl></div><div class="step-actions" hidden><button type="button" data-prev>← 上一步</button><span class="position" aria-live="polite"></span><button type="button" data-next>下一步 →</button></div></figure>
+<p>这里值得长期约定的是<strong>交给下一步的东西</strong>。检索返回素材标识、原片起止帧、可访问的证据和不确定之处。写入接受基准工程版本、目标区间、候选来源、音轨策略和本次修改编号，返回新版本与实际差异。同一修改编号重试时返回同一次结果；版本不符时重新读取。这样即使把找镜头的方法从固定规则换成动态委派，仍能检查有没有误动音乐。工程状态相同还不够，导出环节也可能错位，成片应再查一次。</p>
+<p>换到客服，结构也能迁移。政策检索与订单读取可以并行，退款决定须同时看到两边的证据，写入时核对订单最新状态和退款编号。能否把说明说清楚由人或对话评价判断，数据库中的实际退款另查。两种产品共同需要的是可复核的交接和有边界的写入。差别在于，订单有明确终态，“认出来”更多取决于观众怎样理解那两个镜头。<a href="https://arxiv.org/html/2406.12045">τ-bench 的业务终态评估</a></p>
+</section>
+<section class="chapter" id="evaluation">
+<h2>怎样证明编排改善了结果？<a class="anchor" href="#evaluation" aria-label="本节链接">#</a></h2>
+<p>先把“更强”拆成四个可以分别失手的问题。<strong>交付可靠性</strong>看硬约束能否反复守住。<strong>能力范围</strong>看以前不能完成的任务类别现在能否完成。<strong>作品质量</strong>看同一份委托、同一批素材下，人更喜欢哪个成品。<strong>迁移能力</strong>看没有现成场景手册时，能不能组合旧方法完成新委托。导出次数、调用成功数或技能数量，各自只能回答其中很窄的一部分。</p>
+<h3 id="用最便宜的对照定位下一笔投入">用最便宜的对照，定位下一笔投入<a class="anchor" href="#用最便宜的对照定位下一笔投入" aria-label="本节链接">#</a></h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">要判断的变化</th><th scope="col">保持相同的条件</th><th scope="col">值得比较的组及读数</th></tr></thead><tbody><tr><td>方法内容和发现</td><td>模型、工具、总知识内容和素材；无指导组除外</td><td>无指导、整包、人工指定模块、自动选模块。读最终通过率和漏选原因。</td></tr><tr><td>工具接口尺寸</td><td>同一后端、相同工程、相同方法和可表达动作</td><td>底层操作、常用组合、组合加下钻。既测常规改稿，也测组合入口能否表达例外。</td></tr><tr><td>分工与计算投入</td><td>同模型、工具、候选素材；记下实际总成本、调用数和等待时间</td><td>一次单代理、单代理多次出候选并选优、固定流程、动态委派。对齐预算比较，再单列放宽预算后的最高结果。</td></tr><tr><td>迁移与维护</td><td>冻结方法与评审口径，按项目保留没见过的素材</td><td>新人物、新场景、新组合意图；记录回归失败、修一次规则所需时间，以及新模型能否裸做。</td></tr></tbody></table></div>
+<p>为什么要给单代理多做几次的机会？PACE 的预印本重新检查了已有研究。在 123 个多代理原本胜过单次作答的成对比较中，换用多次采样基线后有 53 个不再领先。它主要复核有标准答案的任务，无法据此断定开放创作没有协作收益。它指出了一个公平的反问：如果给同一位剪辑者同样的预算，多试两版并让相同评审来选，会怎样？还要区分“候选中至少有一版好”与“系统最终交出的那版好”。<a href="https://arxiv.org/html/2611.17610v2">PACE v2 的比较口径与局限</a></p>
+<p>一次做对也不等于次次做对。在 τ-bench 原始零售任务中，GPT-4o 函数调用单次通过率为 61.2%，从同一初态独立重复同题八次且全部通过的指标低于 25%。这是模拟客服环境里的历史测量。对一个有三版可选的创作任务，可以问三次里有无一次成功（pass@3）；对用户锁定的音轨，应从同一草稿独立尝试三次，问是否每次都保留（pass^3）。同一工程连续改三轮，则要另设多轮测试。后者关系到用户敢不敢让系统直接碰工程。<a href="https://arxiv.org/html/2406.12045">τ-bench 的重复试验与指标定义</a></p>
+<h3 id="让看片的人来回答最后一个问题">让看片的人来回答最后一个问题<a class="anchor" href="#让看片的人来回答最后一个问题" aria-label="本节链接">#</a></h3>
+<p>Timeline-Bench 的原始研究在 56 个实际剪辑任务上测试 16 套配置，共 896 次运行。只有 125 次通过整套验收。另有 43 位剪辑师参与盲评，在 2,582 次可判定的对比中，83.5% 更喜欢人工参考片。前一个分母是运行，后一个分母是可判比较。这两个数既不能相除，也不能凭它们判定哪种 Agent 拓扑更会剪片。它们提醒产品设计者把两个问题分别问完：文件交得出来吗？放给人看，还想选它吗？<a href="https://tensortest.com/benchmarks/timelinebench/">原论文与数据口径</a> · <a href="https://timelinebench.tensortest.com/docs/human-study">人评流程</a></p>
+<p>对开头那场重逢戏，可以先让程序筛出误动音轨、改时长的版本。人物身份对照已经核验的标签，缺少标签就回原片确认。统计时把这些失败计入全部尝试，并注明有多少版本进入盲评。给看片者看同一委托下的完整、有声成片，随机左右顺序，允许平局和都不合格，先问“哪一刻让你看出两人认识”，再问偏好。按独立素材或项目统计差异，给出不确定范围；同一场戏换十个随机种子，还只是同一场戏。另记实际成本、等待时长和人工救回时间。这样可以看见某种结构究竟是让系统少犯错，还是让原本都能交付的两个版本真正拉开了差距。</p>
+</section>
+<section class="chapter" id="closing">
+<h2>哪些能力值得留下？<a class="anchor" href="#closing" aria-label="本节链接">#</a></h2>
+<p>在这个例子里，我会先留下三样东西：能回到原声原画的证据、能安全撤回的时间线操作、能把新旧版本放在一起判断的评审办法。随后再看失败集中在哪里。漏找就改检索或试并行取证，选错就补上下文和反例，误动工程就收紧写入接口。只有某类需求反复出现、方法在新素材上仍有价值时，才值得为它单独维护一个场景 Skill。</p>
+<p>如果两个合规版本都拍准了视线，却只有一个让观众认出了那两个人，系统最该保存的，可能就是那半秒钟的差别。下次换一种模型或换一种编排，仍可以回到同一段素材，重新听、重新看、重新判断。</p>
+<p>延伸阅读收录了产品入口的版本变化、论文数字为何修订，以及一组视频评分的逐主题复算。<a href="https://github.com/dengxianghua888-ops/agent-architecture-notes/blob/main/notes/evidence-review.md">关键论点与证据复核</a></p>
+</section>
+    </article>
+    <details class="sources"><summary>文中出处（27）</summary><ol><li><a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic 对工作流与 Agent 的定义和实例</a></li><li><a href="https://agentskills.io/specification">Agent Skills 规范</a></li><li><a href="https://code.claude.com/docs/en/sub-agents">子代理的上下文与委派</a></li><li><a href="https://docs.langchain.com/oss/python/langgraph/persistence">LangGraph 的状态保存机制</a></li><li><a href="https://modelcontextprotocol.io/extensions/skills/overview">MCP Skills 扩展与客户端支持说明</a></li><li><a href="https://developers.openai.com/api/docs/guides/agents/orchestration#use-handoffs-for-delegated-ownership">OpenAI 对助手协作和控制权移交的说明</a></li><li><a href="https://arxiv.org/html/2512.08296v3">多代理缩放研究 v3</a></li><li><a href="https://arxiv.org/html/2609.23121v1">MM-ContextFold 表 1 和表 2</a></li><li><a href="https://code.claude.com/docs/en/workflows">Claude Code 工作流</a></li><li><a href="https://platform.claude.com/cookbook/claude-agent-sdk-08-dynamic-workflows">十条声明的示例脚本</a></li><li><a href="https://developers.openai.com/api/docs/guides/tools-programmatic-tool-calling">程序化工具调用</a></li><li><a href="https://learn.chatgpt.com/docs/agent-configuration/subagents">Codex 与 Work 的子代理说明</a></li><li><a href="https://code.claude.com/docs/en/model-config">Claude Code 的强度设置</a></li><li><a href="https://arxiv.org/html/2609.24161v1">MCP-GRANITE 表 II</a></li><li><a href="https://arxiv.org/html/2603.00718v2">SkillCraft 表 3 与失败案例</a></li><li><a href="https://arxiv.org/html/2602.12670v4">SkillsBench v4</a></li><li><a href="https://arxiv.org/html/2603.15401v2">SWE-Skills-Bench v2</a></li><li><a href="https://arxiv.org/html/2405.15793">工具接口如何改变同一模型的表现</a></li><li><a href="https://arxiv.org/html/2604.04323">研究设计、实验组与图 2</a></li><li><a href="https://arxiv.org/html/2603.22455v5">SkillRouter 的检索和端到端比较</a></li><li><a href="https://arxiv.org/html/2610.08875v2">组织方式受控实验，表 7</a></li><li><a href="https://proceedings.colm.cc/paper_files/paper/2026/file/475b85eb74d201bead9927807e713e95-Paper-Conference.pdf">SkillLearnBench 正式论文表 2 和选题条件</a></li><li><a href="https://arxiv.org/html/2406.12045">τ-bench 的业务终态评估</a></li><li><a href="https://arxiv.org/html/2611.17610v2">PACE v2 的比较口径与局限</a></li><li><a href="https://tensortest.com/benchmarks/timelinebench/">原论文与数据口径</a></li><li><a href="https://timelinebench.tensortest.com/docs/human-study">人评流程</a></li><li><a href="https://github.com/dengxianghua888-ops/agent-architecture-notes/blob/main/notes/evidence-review.md">关键论点与证据复核</a></li></ol></details>
+    <footer class="article-foot"><a href="#top">回到页首 ↑</a><a href="./articles/agent-and-skill-orchestration/">本文固定链接</a><a href="https://github.com/dengxianghua888-ops/agent-architecture-notes/releases/tag/v1.0.0">本版 PDF 与 Word ↗</a><a href="https://github.com/dengxianghua888-ops/agent-architecture-notes/blob/main/articles/agent-and-skill-orchestration.md">查看 Markdown 原文 ↗</a></footer>
+  </main>
+</div>
+</body>
+</html>

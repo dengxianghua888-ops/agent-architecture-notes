@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="$description">
+  <title>$title · $collection</title>
+  <link rel="canonical" href="$canonical">
+  $social
+  <link rel="stylesheet" href="${assets}reader.css">
+  <script src="${assets}reader.js" defer></script>
+</head>
+<body id="top">
+<a class="skip" href="#reading">跳到正文</a>
+<header class="mast">
+  <div class="mast-in">
+    <a class="wordmark" href="$home"><span class="book" aria-hidden="true"></span>$collection</a>
+    <div class="actions">$actions<button type="button" data-print hidden>打印</button></div>
+  </div>
+</header>
+<div class="mobile-nav">
+  <details><summary><span>文章目录</span><span class="summary-icon" aria-hidden="true"></span></summary><nav aria-label="移动端文章目录">$toc</nav></details>
+</div>
+<div class="layout">
+  <aside class="rail" aria-label="阅读导航"><div class="rail-inner">
+    <div class="rail-title">本文目录</div><nav aria-label="章节目录">$toc</nav>
+    <div class="reading-progress" hidden><div><span>阅读进度</span><span data-percent>0%</span></div><progress max="100" value="0" aria-label="阅读进度"></progress></div>
+  </div></aside>
+  <main class="reader" id="reading" tabindex="-1">
+    <article aria-labelledby="article-title">
+      <header class="article-head">$date<h1 id="article-title">$title</h1>$lead</header>
+      $article
+    </article>
+    $sources
+    <footer class="article-foot"><a href="#top">回到页首 ↑</a><a href="$permalink">本文固定链接</a>$download<a href="$source_url">查看 Markdown 原文 ↗</a></footer>
+  </main>
+</div>
+</body>
+</html>
